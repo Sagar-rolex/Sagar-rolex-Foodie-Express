@@ -1,0 +1,6 @@
+import {useCallback,useEffect,useState} from 'react';import {useAuth} from '../contexts/AuthContext';import {wishlistApi} from '../api/wishlistApi';import {toast} from 'sonner';
+export function useWishlist(){const {isAuthenticated,isAdmin,user}=useAuth();const [ids,setIds]=useState<Set<number>>(new Set());const [loading,setLoading]=useState(false);
+ const refresh=useCallback(async()=>{if(!isAuthenticated||isAdmin){setIds(new Set());return}setLoading(true);try{const items=await wishlistApi.get();setIds(new Set(items.map(i=>i.foodItemId)))}catch(e:any){toast.error(e.response?.data?.message||'Could not load your favourites')}finally{setLoading(false)}},[isAuthenticated,isAdmin]);
+ useEffect(()=>{void refresh()},[refresh,user?.userId]);
+ const toggle=useCallback(async(id:number)=>{if(!isAuthenticated||isAdmin){toast.info('Sign in with a customer account to save favourites');return false}setLoading(true);try{if(ids.has(id)){await wishlistApi.remove(id);setIds(prev=>{const n=new Set(prev);n.delete(id);return n});toast.success('Removed from favourites')}else{await wishlistApi.add(id);setIds(prev=>new Set(prev).add(id));toast.success('Saved to favourites')}return true}catch(e:any){toast.error(e.response?.data?.message||'Could not update favourites');return false}finally{setLoading(false)}},[ids,isAuthenticated,isAdmin]);
+ return {ids,loading,toggle,refresh};}

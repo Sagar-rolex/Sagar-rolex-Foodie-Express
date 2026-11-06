@@ -1,0 +1,12 @@
+package com.foodieexpress.controller;
+import com.foodieexpress.dto.*;import com.foodieexpress.model.*;import com.foodieexpress.service.*;import jakarta.validation.Valid;import org.springframework.http.*;import org.springframework.web.bind.annotation.*;import java.util.*;
+@RestController @RequestMapping("/api/support") public class SupportController {
+ private final SupportService support;private final AuthService auth;private final CustomerService customers;
+ public SupportController(SupportService s,AuthService a,CustomerService c){support=s;auth=a;customers=c;}
+ private Customer customer(String token){User u=auth.validateSession(token).orElseThrow(()->new RuntimeException("Valid customer session required"));if(u.getRole()!=User.Role.CUSTOMER)throw new RuntimeException("Customer access required");return customers.getOrCreateProfile(u);}
+ @GetMapping("/faqs") public ResponseEntity<ApiResponse<List<SupportResponses.Faq>>> faqs(@RequestParam(required=false)String q,@RequestParam(required=false)FaqEntry.Category category){return ResponseEntity.ok(ApiResponse.success("FAQs",support.searchFaq(q,category)));}
+ @PostMapping("/tickets") public ResponseEntity<ApiResponse<SupportResponses.Ticket>> create(@RequestHeader(value="X-Session-Token",required=false)String token,@Valid @RequestBody SupportRequests.CreateTicket req){return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Support ticket created",support.create(customer(token),req)));}
+ @GetMapping("/tickets") public ResponseEntity<ApiResponse<List<SupportResponses.Ticket>>> tickets(@RequestHeader(value="X-Session-Token",required=false)String token){return ResponseEntity.ok(ApiResponse.success("Your support tickets",support.customerTickets(customer(token))));}
+ @GetMapping("/tickets/{id}") public ResponseEntity<ApiResponse<SupportResponses.Ticket>> ticket(@RequestHeader(value="X-Session-Token",required=false)String token,@PathVariable Long id){return ResponseEntity.ok(ApiResponse.success("Support ticket",support.customerTicket(customer(token),id)));}
+ @PostMapping("/tickets/{id}/messages") public ResponseEntity<ApiResponse<SupportResponses.Ticket>> reply(@RequestHeader(value="X-Session-Token",required=false)String token,@PathVariable Long id,@Valid @RequestBody SupportRequests.Reply req){return ResponseEntity.ok(ApiResponse.success("Reply sent",support.customerReply(customer(token),id,req.message())));}
+}

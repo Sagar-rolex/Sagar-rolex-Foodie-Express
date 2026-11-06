@@ -1,0 +1,10 @@
+package com.foodieexpress.service;
+import com.foodieexpress.dto.WishlistResponse;import com.foodieexpress.model.*;import com.foodieexpress.repository.*;import org.springframework.stereotype.Service;import org.springframework.transaction.annotation.Transactional;import java.util.*;
+@Service public class WishlistService {
+ private final WishlistItemRepository wishlist;private final FoodItemRepository foods;
+ public WishlistService(WishlistItemRepository w,FoodItemRepository f){wishlist=w;foods=f;}
+ @Transactional(readOnly=true) public List<WishlistResponse> get(Customer c){List<WishlistItem> saved=wishlist.findByCustomerOrderByCreatedAtDesc(c);Map<Long,FoodItem> live=new HashMap<>();foods.findAllById(saved.stream().map(WishlistItem::getFoodItemId).toList()).forEach(f->live.put(f.getId(),f));return saved.stream().map(item->toResponse(item,live.get(item.getFoodItemId()))).toList();}
+ @Transactional public WishlistResponse add(Customer c,Long foodId){FoodItem food=foods.findById(foodId).orElseThrow(()->new RuntimeException("Food item not found"));WishlistItem item=wishlist.findByCustomerAndFoodItemId(c,foodId).orElseGet(()->wishlist.save(WishlistItem.builder().customer(c).foodItemId(foodId).savedName(food.getName()).savedImagePath(food.getImagePath()).savedPrice(food.getPrice()).build()));return toResponse(item,food);}
+ @Transactional public void remove(Customer c,Long foodId){if(wishlist.deleteByCustomerAndFoodItemId(c,foodId)==0)throw new RuntimeException("Favourite not found");}
+ private WishlistResponse toResponse(WishlistItem w,FoodItem food){if(food==null)return new WishlistResponse(w.getId(),w.getFoodItemId(),w.getSavedName()==null?"Removed dish":w.getSavedName(),w.getSavedImagePath(),w.getSavedPrice(),null,null,"Restaurant unavailable",false,true,w.getCreatedAt());Restaurant r=food.getRestaurant();boolean available=food.isAvailable()&&r!=null&&r.isActive();return new WishlistResponse(w.getId(),food.getId(),food.getName(),food.getImagePath(),food.getPrice(),r==null?null:r.getRating(),r==null?null:r.getId(),r==null?null:r.getName(),available,false,w.getCreatedAt());}
+}
