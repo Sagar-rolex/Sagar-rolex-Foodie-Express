@@ -5,6 +5,7 @@ type SafeImageProps = {
   imagePath?: string | null;
   alt: string;
   kind?: 'food' | 'restaurant';
+  fallbackImagePath?: string;
   className: string;
   loading?: 'lazy' | 'eager';
   fetchPriority?: 'high' | 'low' | 'auto';
@@ -23,8 +24,10 @@ function isLocalImagePath(path: string): boolean {
 const API_ROOT = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api').replace(/\/api\/?$/i, '');
 
 /** Keeps the image frame painted while loading and swaps to a local photo on any failure. */
-export default function SafeImage({ imagePath, alt, kind = 'food', className, loading = 'lazy', fetchPriority = 'auto' }: SafeImageProps) {
-  const fallbackPath = FALLBACKS[kind];
+export default function SafeImage({ imagePath, alt, kind = 'food', fallbackImagePath, className, loading = 'lazy', fetchPriority = 'auto' }: SafeImageProps) {
+  const fallbackPath = fallbackImagePath && isLocalImagePath(fallbackImagePath)
+    ? fallbackImagePath
+    : FALLBACKS[kind];
   const requestedPath = imagePath && isLocalImagePath(imagePath)
     ? imagePath.startsWith('/uploads/') ? `${API_ROOT}${imagePath}` : imagePath
     : fallbackPath;

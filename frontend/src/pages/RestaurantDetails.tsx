@@ -71,6 +71,13 @@ export default function RestaurantDetails() {
   const filteredItems = restaurant.foodItems?.filter(item =>
     menuCategory === 'All' || item.category === menuCategory
   ) || [];
+  const restaurantImagePath = restaurant.bannerImagePath || (
+    restaurant.name === 'Burger Barn' && (!restaurant.imagePath || restaurant.imagePath === '/images/burger.jpg')
+      ? '/images/food-banners/burger-barn-restaurant.webp'
+      : restaurant.name === 'Dakshin Rasoi' && (!restaurant.imagePath || restaurant.imagePath === '/images/dosa.jpg')
+        ? '/images/food-banners/dakshin-rasoi-restaurant.webp'
+        : restaurant.imagePath
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -80,7 +87,7 @@ export default function RestaurantDetails() {
           {/* Image Section */}
           <div className="w-full md:w-1/2 lg:w-1/3">
             <div className="relative h-48 w-full rounded-lg overflow-hidden">
-              <SafeImage imagePath={restaurant.bannerImagePath || restaurant.imagePath} alt={`${restaurant.name} restaurant`} kind="restaurant" className="h-full w-full" />
+              <SafeImage imagePath={restaurantImagePath} alt={`${restaurant.name} restaurant`} kind="restaurant" className="h-full w-full" />
               {/* Rating Badge */}
               <div className="absolute top-3 left-3 bg-yellow-400/90 rounded-full px-2 py-1 text-xs flex items-center space-x-1">
                 <Star size={12} className="text-yellow-800" />
@@ -103,7 +110,7 @@ export default function RestaurantDetails() {
           {/* Info Section */}
           <div className="flex-1 space-y-4">
             <h1 className="text-3xl font-bold text-gray-900">{restaurant.name}</h1>
-            <div className="flex items-center space-x-4 text-gray-600">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-600">
               <span>⭐</span>
               <span className="font-medium">{restaurant.rating?.toFixed(1) || '4.5'}</span>
               <span>•</span>

@@ -40,10 +40,11 @@ class AdminDashboardServiceTest {
     void returnsZeroStatisticsForEmptyDatabase() {
         when(restaurantRepository.count()).thenReturn(0L);
         when(orderRepository.count()).thenReturn(0L);
-        when(billRepository.sumPaidRevenue(com.foodieexpress.model.Bill.PaymentStatus.PAID)).thenReturn(null);
+        when(billRepository.sumPaidRevenue(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(BigDecimal.ZERO);
+        when(billRepository.sumPaidRevenueBetween(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(BigDecimal.ZERO);
         when(customerRepository.count()).thenReturn(0L);
         when(foodItemRepository.countByAvailableTrue()).thenReturn(0L);
-        when(orderRepository.countByStatus(com.foodieexpress.model.Order.OrderStatus.PLACED)).thenReturn(0L);
+        when(orderRepository.countByStatusIn(org.mockito.ArgumentMatchers.anyList())).thenReturn(0L);
         when(orderRepository.findTop5ByOrderByOrderTimeDesc()).thenReturn(List.of());
         when(orderRepository.countOrdersByDaySince(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
         when(billRepository.paidRevenueByDaySince(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
@@ -65,10 +66,11 @@ class AdminDashboardServiceTest {
     void preservesAvailableStatisticsWhenOneMetricFails() {
         when(restaurantRepository.count()).thenThrow(new RuntimeException("database query failed"));
         when(orderRepository.count()).thenReturn(8L);
-        when(billRepository.sumPaidRevenue(com.foodieexpress.model.Bill.PaymentStatus.PAID)).thenReturn(new BigDecimal("125.50"));
+        when(billRepository.sumPaidRevenue(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(new BigDecimal("125.50"));
+        when(billRepository.sumPaidRevenueBetween(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(new BigDecimal("125.50"));
         when(customerRepository.count()).thenReturn(3L);
         when(foodItemRepository.countByAvailableTrue()).thenReturn(4L);
-        when(orderRepository.countByStatus(com.foodieexpress.model.Order.OrderStatus.PLACED)).thenReturn(2L);
+        when(orderRepository.countByStatusIn(org.mockito.ArgumentMatchers.anyList())).thenReturn(2L);
         when(orderRepository.findTop5ByOrderByOrderTimeDesc()).thenReturn(List.of());
         when(orderRepository.countOrdersByDaySince(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
         when(billRepository.paidRevenueByDaySince(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());

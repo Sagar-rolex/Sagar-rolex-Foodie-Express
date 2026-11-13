@@ -37,6 +37,7 @@ public class OrderService {
     private PaymentRecordRepository paymentRecordRepository;
 
     @Autowired private CouponService couponService;
+    @Autowired private OrderStatusHistoryRepository statusHistoryRepository;
 
     @Transactional
     public Order placeOrder(Customer customer, String deliveryAddress, String couponCode) {
@@ -122,6 +123,7 @@ public class OrderService {
         order.setItems(orderItems);
         order.setTotalAmount(total);
         order = orderRepository.save(order);
+        recordStatus(order, Order.OrderStatus.PLACED, "CUSTOMER", "Order placed");
 
         orderItemRepository.saveAll(orderItems);
 
@@ -171,7 +173,57 @@ public class OrderService {
     }
 
     public List<Order> getCustomerOrders(Customer customer) {
-        return orderRepository.findByCustomer(customer);
+        return orderRepository.findByCustomerOrderByOrderTimeDesc(customer, org.springframework.data.domain.PageRequest.of(0, 100)).getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Order> getCustomerOrders(Customer customer, int page, int size) {
+        return orderRepository.findByCustomerOrderByOrderTimeDesc(customer,
+                org.springframework.data.domain.PageRequest.of(page, size));
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Order> getCustomerOrders(Customer customer, int page, int size, Order.OrderStatus status) {
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return status == null ? orderRepository.findByCustomerOrderByOrderTimeDesc(customer, pageable)
+                : orderRepository.findByCustomerAndStatusOrderByOrderTimeDesc(customer, status, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Order> getCustomerOrders(Customer customer, int page, int size, String status) {
+        if (status == null || status.isBlank()) return getCustomerOrders(customer, page, size);
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        if ("ACTIVE".equalsIgnoreCase(status)) return orderRepository.findByCustomerAndStatusInOrderByOrderTimeDesc(customer,
+                List.of(Order.OrderStatus.PLACED, Order.OrderStatus.CONFIRMED, Order.OrderStatus.PREPARING, Order.OrderStatus.OUT_FOR_DELIVERY), pageable);
+        try { return orderRepository.findByCustomerAndStatusOrderByOrderTimeDesc(customer, Order.OrderStatus.valueOf(status.toUpperCase()), pageable); }
+        catch (IllegalArgumentException e) { throw new IllegalArgumentException("Invalid order status filter"); }
+    }
+
+    @Transactional(readOnly = true)
+    public com.foodieexpress.dto.OrderTrackingResponse getTracking(Order order) {
+        List<com.foodieexpress.dto.OrderTrackingResponse.Step> timeline = statusHistoryRepository
+                .findByOrderIdOrderByChangedAtAscIdAsc(order.getId()).stream()
+                .map(event -> new com.foodieexpress.dto.OrderTrackingResponse.Step(event.getStatus(), event.getChangedAt(), event.getNote()))
+                .toList();
+        if (timeline.isEmpty()) timeline = List.of(new com.foodieexpress.dto.OrderTrackingResponse.Step(
+                Order.OrderStatus.PLACED, order.getOrderTime(), "Order placed"));
+        PaymentRecord payment = paymentRecordRepository.findByOrder(order).orElse(null);
+        String reference = payment != null && payment.getStatus() == PaymentRecord.PaymentStatus.SUCCESS
+                ? payment.getRazorpayPaymentId() : null;
+        String method = reference == null ? null : "Razorpay";
+        String paymentStatus = billRepository.findByOrder(order).map(bill -> bill.getPaymentStatus().name()).orElse("PENDING");
+        return new com.foodieexpress.dto.OrderTrackingResponse(order.getId(), order.getStatus(),
+                timeline.get(timeline.size() - 1).changedAt(), order.getCancellationReason(), paymentStatus, method, reference, timeline);
+    }
+
+    private void recordStatus(Order order, Order.OrderStatus status, String actor, String note) {
+        statusHistoryRepository.save(com.foodieexpress.model.OrderStatusHistory.builder()
+                .order(order).status(status).actorRole(actor).note(note).build());
+    }
+
+    @Transactional
+    public void recordPaymentConfirmation(Order order) {
+        recordStatus(order, Order.OrderStatus.CONFIRMED, "PAYMENT", "Payment verified");
     }
 
     public Order getOrderById(Long id) {
@@ -197,24 +249,42 @@ public class OrderService {
             case DELIVERED, CANCELLED -> false;
         };
         if (!allowed) throw new RuntimeException("Invalid order status transition: " + order.getStatus() + " to " + status);
-        if (status == Order.OrderStatus.CANCELLED && paymentRecordRepository.findByOrder(order).isPresent()) {
-            throw new RuntimeException("An order with a payment attempt cannot be cancelled here; verify payment/refund status first");
+        if (status == Order.OrderStatus.CANCELLED) {
+            PaymentRecord payment = paymentRecordRepository.findByOrder(order).orElse(null);
+            if (payment != null && payment.getStatus() != PaymentRecord.PaymentStatus.FAILED
+                    && payment.getStatus() != PaymentRecord.PaymentStatus.CANCELLED) {
+                throw new RuntimeException("An order with an active or successful payment attempt cannot be cancelled here");
+            }
+            order.setCancellationReason("Cancelled by administrator");
         }
         order.setStatus(status);
-        return orderRepository.save(order);
+        if (status == Order.OrderStatus.CANCELLED) couponService.release(order);
+        Order saved = orderRepository.save(order);
+        recordStatus(saved, status, "ADMIN", "Order status updated");
+        return saved;
     }
 
     @Transactional
     public Order cancelUnpaidOrder(Long orderId) {
+        return cancelUnpaidOrder(orderId, null);
+    }
+
+    @Transactional
+    public Order cancelUnpaidOrder(Long orderId, String reason) {
         Order order = getOrderById(orderId);
         if (order.getStatus() != Order.OrderStatus.PLACED) {
             throw new RuntimeException("Only unpaid orders can be cancelled");
         }
-        if (paymentRecordRepository.findByOrder(order).isPresent()) {
-            throw new RuntimeException("An order with an active payment attempt cannot be cancelled");
+        PaymentRecord payment = paymentRecordRepository.findByOrder(order).orElse(null);
+        if (payment != null && payment.getStatus() != PaymentRecord.PaymentStatus.FAILED
+                && payment.getStatus() != PaymentRecord.PaymentStatus.CANCELLED) {
+            throw new RuntimeException("An order with an active or successful payment attempt cannot be cancelled");
         }
         order.setStatus(Order.OrderStatus.CANCELLED);
+        order.setCancellationReason(reason == null || reason.isBlank() ? "Cancelled by customer" : reason.trim());
         couponService.release(order);
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        recordStatus(saved, Order.OrderStatus.CANCELLED, "CUSTOMER", saved.getCancellationReason());
+        return saved;
     }
 }

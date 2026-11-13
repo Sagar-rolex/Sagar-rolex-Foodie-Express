@@ -1,6 +1,8 @@
 package com.foodieexpress.exception;
 
 import com.foodieexpress.dto.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<String>> handleDataIntegrity(DataIntegrityViolationException ex) {
@@ -39,6 +43,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<String>> handleRuntime(RuntimeException ex) {
+        if (ex instanceof ClassCastException) {
+            log.error("API class cast failure", ex);
+        }
         String message = ex.getMessage();
         if (message == null || message.isBlank()) message = "Internal error";
         if (message.toLowerCase().contains("not found")) {
@@ -75,6 +82,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleGeneric(Exception ex) {
+        log.error("Unhandled API exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Unexpected error: " + ex.getMessage()));
     }
 }

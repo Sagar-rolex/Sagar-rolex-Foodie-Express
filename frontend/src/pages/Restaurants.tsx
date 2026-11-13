@@ -6,6 +6,18 @@ import { toast } from 'sonner';
 import { Search, MapPin, Star } from 'lucide-react';
 import SafeImage from '../components/SafeImage';
 
+function restaurantFallbackImage(cuisineType: string): string {
+  const cuisine = cuisineType.toLowerCase();
+  if (cuisine.includes('south indian')) return '/images/dosa.jpg';
+  if (cuisine.includes('chinese')) return '/images/category-chinese.webp';
+  if (cuisine.includes('burger') || cuisine.includes('fast food')) return '/images/burger.jpg';
+  if (cuisine.includes('mexican') || cuisine.includes('wrap')) return '/images/category-street-food.webp';
+  if (cuisine.includes('healthy') || cuisine.includes('breakfast')) return '/images/salad.jpg';
+  if (cuisine.includes('dessert') || cuisine.includes('sweet')) return '/images/category-desserts.webp';
+  if (cuisine.includes('indian') || cuisine.includes('dhaba')) return '/images/curry.jpg';
+  return '/images/restaurant-interior.jpg';
+}
+
 export default function Restaurants() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
@@ -141,10 +153,10 @@ export default function Restaurants() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRestaurants.map((restaurant) => (
             <Link key={restaurant.id} to={`/restaurants/${restaurant.id}`}>
-              <div className="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-transform hover:scale-[1.02]">
+              <div className="group min-w-0 rounded-lg bg-white shadow-md overflow-hidden hover:shadow-lg transition-transform hover:scale-[1.02]">
                 {/* Image with badges */}
                 <div className="relative h-48">
-                  <SafeImage imagePath={restaurant.bannerImagePath || restaurant.imagePath} alt={`${restaurant.name} restaurant`} kind="restaurant" className="h-full w-full" />
+                  <SafeImage imagePath={restaurant.bannerImagePath || restaurant.imagePath} fallbackImagePath={restaurantFallbackImage(restaurant.cuisineType)} alt={`${restaurant.name} restaurant`} kind="restaurant" className="h-full w-full" />
                   {/* Rating Badge */}
                   <div className="absolute top-3 left-3 bg-yellow-400/90 rounded-full px-2 py-1 text-xs flex items-center space-x-1">
                     <Star size={12} className="text-yellow-800" />
@@ -153,7 +165,7 @@ export default function Restaurants() {
                   {/* Time Badge */}
                   <div className="absolute top-3 right-3 bg-primary/90 rounded-full px-2 py-1 text-xs text-white flex items-center space-x-1">
                     <MapPin size={12} className="text-white" />
-                    <span className="font-medium">${restaurant.deliveryTime || '30-40'} min</span>
+                    <span className="font-medium">{restaurant.deliveryTime || '30-40'} min</span>
                   </div>
                   {/* Offer Badge - Only if backend provides offer data */}
                   {/* {restaurant.offer && (
@@ -165,11 +177,7 @@ export default function Restaurants() {
                 {/* Content */}
                 <div className="p-4">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{restaurant.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2">{restaurant.cuisineType} • {restaurant.address}</p>
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>₹₹</span>
-                    {/* Price indicator */}
-                  </div>
+                  <p className="mb-2 break-words text-sm text-gray-500">{restaurant.cuisineType} • {restaurant.address}</p>
                 </div>
               </div>
             </Link>

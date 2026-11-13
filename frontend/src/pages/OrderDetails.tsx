@@ -14,6 +14,8 @@ export default function OrderDetails() {
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [tracking, setTracking] = useState<Awaited<ReturnType<typeof orderApi.getTracking>>['data'] | null>(null);
+  const [reordering, setReordering] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,6 +24,7 @@ export default function OrderDetails() {
       try {
         const orderResponse = await orderApi.getOrderById(Number(id));
         setOrder(orderResponse.data);
+        try { setTracking((await orderApi.getTracking(Number(id))).data); } catch { /* Older orders may not have a status timeline yet. */ }
 
         try {
           const billResponse = await billApi.getBillByOrder(Number(id));
@@ -44,13 +47,28 @@ export default function OrderDetails() {
     fetchOrderDetails();
   }, [id, navigate]);
 
+  useEffect(() => {
+    if (!id) return;
+    if (order && ['DELIVERED', 'CANCELLED'].includes(order.status)) return;
+    const refresh = async () => {
+      try {
+        const result = await orderApi.getTracking(Number(id));
+        setTracking(result.data);
+        setOrder(current => current ? { ...current, status: result.data.currentStatus } : current);
+      } catch { /* Keep the last known state visible during transient network failures. */ }
+    };
+    const timer = window.setInterval(refresh, 15000);
+    return () => window.clearInterval(timer);
+  }, [id, order]);
+
   const handleCancelOrder = async () => {
     if (!order) return;
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    const reason = window.prompt('Tell us why you are cancelling (optional):') || undefined;
 
     setCancelling(true);
     try {
-      const response = await orderApi.cancelOrder(order.id);
+      const response = await orderApi.cancelOrder(order.id, reason);
       setOrder(response.data);
       toast.success('Order cancelled successfully');
     } catch (error: any) {
@@ -202,6 +220,19 @@ export default function OrderDetails() {
         </div>
       )}
 
+      <section className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-bold mb-4">Status updates</h2>
+        {order.status === 'CANCELLED' ? <p className="text-red-700">Order cancelled{tracking?.cancellationReason ? `: ${tracking.cancellationReason}` : '.'}</p> : <ol className="space-y-3">{(tracking?.timeline || []).map((event, index) => <li key={`${event.status}-${event.changedAt}-${index}`} className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full bg-orange-500"/><div><p className="font-medium">{event.status.replace(/_/g, ' ')}</p><p className="text-sm text-gray-500">{new Date(event.changedAt).toLocaleString()}{event.note ? ` · ${event.note}` : ''}</p></div></li>)}</ol>}
+        {['PLACED', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY'].includes(order.status) && <p className="mt-4 text-xs text-gray-500">Status refreshes automatically about every 15 seconds.</p>}
+      </section>
+
+      <section className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-bold mb-3">Payment details</h2>
+        <p>Payment status: <strong>{tracking?.paymentStatus || bill?.paymentStatus || 'PENDING'}</strong></p>
+        {tracking?.paymentMethod && <p className="mt-1">Method: {tracking.paymentMethod}</p>}
+        {tracking?.paymentReference && <p className="mt-1 break-all text-sm text-gray-600">Transaction reference: {tracking.paymentReference}</p>}
+      </section>
+
       {/* Actions */}
       {canCancel && (
         <div className="flex justify-end">
@@ -214,6 +245,7 @@ export default function OrderDetails() {
           </button>
         </div>
       )}
+      <div className="mt-4 flex justify-end"><button disabled={reordering} onClick={async () => { setReordering(true); try { const { data } = await orderApi.reorder(order.id); if (data.addedItems.length) { toast.success(`${data.addedItems.length} item(s) added to cart`); navigate('/cart'); } if (data.unavailableItems.length) toast.warning(`Skipped: ${data.unavailableItems.join(', ')}`); } catch (error: any) { toast.error(error.response?.data?.message || 'Could not reorder this order'); } finally { setReordering(false); } }} className="rounded-lg bg-orange-600 px-5 py-2 font-semibold text-white disabled:opacity-50">{reordering ? 'Adding…' : 'Reorder'}</button></div>
     </div>
   );
 }

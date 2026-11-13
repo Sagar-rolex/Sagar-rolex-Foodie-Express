@@ -17,6 +17,12 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByCustomer(Customer customer);
+    @EntityGraph(attributePaths = {"restaurant"})
+    Page<Order> findByCustomerOrderByOrderTimeDesc(Customer customer, Pageable pageable);
+    @EntityGraph(attributePaths = {"restaurant"})
+    Page<Order> findByCustomerAndStatusOrderByOrderTimeDesc(Customer customer, Order.OrderStatus status, Pageable pageable);
+    @EntityGraph(attributePaths = {"restaurant"})
+    Page<Order> findByCustomerAndStatusInOrderByOrderTimeDesc(Customer customer, List<Order.OrderStatus> statuses, Pageable pageable);
     long countByCustomer(Customer customer);
     java.util.Optional<Order> findFirstByCustomerAndStatusOrderByOrderTimeDesc(Customer customer, Order.OrderStatus status);
     List<Order> findByRestaurant(Restaurant restaurant);
@@ -32,6 +38,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                                @Param("orderId") Long orderId, Pageable pageable);
 
     long countByStatus(Order.OrderStatus status);
+    long countByStatusIn(List<Order.OrderStatus> statuses);
+    long countByOrderTimeGreaterThanEqualAndOrderTimeLessThan(java.time.LocalDateTime from, java.time.LocalDateTime to);
+    long countByStatusAndOrderTimeGreaterThanEqualAndOrderTimeLessThan(Order.OrderStatus status, java.time.LocalDateTime from, java.time.LocalDateTime to);
+
+    interface OrderBucket { String getBucket(); Long getTotal(); }
+    @Query(value = "select date_format(order_time, :format) as bucket, count(*) as total from orders where order_time >= :from and order_time < :to group by bucket order by bucket", nativeQuery = true)
+    List<OrderBucket> countOrdersByBucket(@Param("from") java.time.LocalDateTime from,
+            @Param("to") java.time.LocalDateTime to, @Param("format") String format);
 
     interface DailyCount { java.sql.Date getDay(); Long getTotal(); }
     @Query(value = "select date(order_time) as day, count(*) as total from orders where order_time >= :since group by date(order_time) order by day", nativeQuery = true)

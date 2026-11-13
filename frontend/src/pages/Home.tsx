@@ -37,9 +37,9 @@ export default function Home() {
     { name: 'Desserts', icon: '🍰' },
   ];
   const cuisineImages: Record<string, string> = {
-    'North Indian': '/images/curry.jpg', 'South Indian': '/images/dosa.jpg', Chinese: '/images/noodles.jpg',
-    Biryani: '/images/indian-thali.jpg', Pizza: '/images/pizza.jpg', Burgers: '/images/burger.jpg',
-    'Street Food': '/images/taco.jpg', Desserts: '/images/dessert.jpg',
+    'North Indian': '/images/curry.jpg', 'South Indian': '/images/dosa.jpg', Chinese: '/images/category-chinese.webp',
+    Biryani: '/images/category-biryani.webp', Pizza: '/images/pizza.jpg', Burgers: '/images/burger.jpg',
+    'Street Food': '/images/category-street-food.webp', Desserts: '/images/category-desserts.webp',
   };
 
   return (
@@ -198,7 +198,7 @@ export default function Home() {
                 <Link key={restaurant.id} to={`/restaurants/${restaurant.id}`} className="group">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                     <div className="relative h-52 overflow-hidden">
-                      <SafeImage imagePath={restaurant.imagePath} alt={`${restaurant.name} restaurant`} kind="restaurant" className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
+                      <SafeImage imagePath={restaurant.bannerImagePath || restaurant.imagePath} alt={`${restaurant.name} restaurant`} kind="restaurant" className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
                       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md rounded-full px-3 py-1 text-xs font-bold text-gray-800 flex items-center space-x-1 shadow-sm">
                         <Star size={14} className="text-amber-500 fill-amber-500" />
                         <span>{restaurant.rating?.toFixed(1) || '4.6'}</span>

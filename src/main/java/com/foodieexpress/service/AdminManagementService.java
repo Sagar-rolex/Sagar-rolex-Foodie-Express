@@ -75,7 +75,7 @@ public class AdminManagementService {
                 bill == null ? order.getTotalAmount() : bill.getGrandTotal(), "INR", order.getStatus(),
                 bill == null ? Bill.PaymentStatus.PENDING : bill.getPaymentStatus(),
                 payment != null && payment.getStatus() == PaymentRecord.PaymentStatus.SUCCESS ? "Razorpay" : null,
-                reference, order.getItems().stream().map(item -> new AdminOrderResponse.Item(
+                reference, order.getDeliveryAddress(), order.getCancellationReason(), order.getItems().stream().map(item -> new AdminOrderResponse.Item(
                         item.getItemNameAtOrder() == null || item.getItemNameAtOrder().isBlank() ? item.getFoodItem().getName() : item.getItemNameAtOrder(),
                         item.getQuantity(), item.getPriceAtOrder())).toList());
     }
