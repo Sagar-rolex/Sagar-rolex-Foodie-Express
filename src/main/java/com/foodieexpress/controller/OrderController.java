@@ -28,6 +28,7 @@ public class OrderController {
     @Autowired private OrderService orderService;
     @Autowired private AuthService authService;
     @Autowired private CustomerService customerService;
+    @Autowired private com.foodieexpress.service.CartService cartService;
 
     private Customer requireCustomer(String token) {
         User user = authService.validateSession(token)
@@ -61,6 +62,18 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Orders retrieved", orders));
     }
 
+    @GetMapping("/history")
+    @Operation(summary = "Get a page of my order history")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<Order>>> orderHistory(
+            @RequestHeader("X-Session-Token") String token,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            @RequestParam(required = false) String status) {
+        if (page < 0 || size < 1 || size > 50) throw new IllegalArgumentException("Invalid page or page size");
+        Customer customer = requireCustomer(token);
+        return ResponseEntity.ok(ApiResponse.success("Order history", orderService.getCustomerOrders(customer, page, size, status)));
+    }
+
     @GetMapping("/{orderId}")
     @Operation(summary = "Get order details (own orders only)")
     public ResponseEntity<ApiResponse<Order>> getOrder(
@@ -71,14 +84,38 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Order details", order));
     }
 
-    @PatchMapping("/{orderId}/cancel")
-    @Operation(summary = "Cancel my order")
-    public ResponseEntity<ApiResponse<Order>> cancelOrder(
+    @GetMapping("/{orderId}/tracking")
+    @Operation(summary = "Get tracking history for my order")
+    public ResponseEntity<ApiResponse<com.foodieexpress.dto.OrderTrackingResponse>> getTracking(
             @RequestHeader("X-Session-Token") String token, @PathVariable Long orderId) {
         Customer customer = requireCustomer(token);
         Order order = orderService.getOrderById(orderId);
         assertOrderOwnership(customer, order);
-        Order cancelled = orderService.cancelUnpaidOrder(orderId);
+        return ResponseEntity.ok(ApiResponse.success("Order tracking", orderService.getTracking(order)));
+    }
+
+    @PostMapping("/{orderId}/reorder")
+    @Operation(summary = "Add available items from my previous order to my cart")
+    public ResponseEntity<ApiResponse<com.foodieexpress.dto.ReorderResponse>> reorder(
+            @RequestHeader("X-Session-Token") String token, @PathVariable Long orderId) {
+        Customer customer = requireCustomer(token);
+        Order order = orderService.getOrderById(orderId);
+        assertOrderOwnership(customer, order);
+        return ResponseEntity.ok(ApiResponse.success("Available items added to cart",
+                cartService.addOrderToCart(customer, order)));
+    }
+
+    @PatchMapping("/{orderId}/cancel")
+    @Operation(summary = "Cancel my order")
+    public ResponseEntity<ApiResponse<Order>> cancelOrder(
+            @RequestHeader("X-Session-Token") String token, @PathVariable Long orderId,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        Customer customer = requireCustomer(token);
+        Order order = orderService.getOrderById(orderId);
+        assertOrderOwnership(customer, order);
+        String reason = body == null ? null : body.get("reason");
+        if (reason != null && reason.length() > 500) throw new IllegalArgumentException("Cancellation reason must be 500 characters or fewer");
+        Order cancelled = orderService.cancelUnpaidOrder(orderId, reason);
         return ResponseEntity.ok(ApiResponse.success("Order cancelled", cancelled));
     }
 }

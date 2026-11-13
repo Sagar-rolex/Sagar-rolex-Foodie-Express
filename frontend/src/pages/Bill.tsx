@@ -139,18 +139,18 @@ Thank you for ordering with Foodie Express!
         {/* Order Items */}
         <div className="p-6 border-b">
           <h3 className="font-semibold text-gray-900 mb-4">Items</h3>
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead>
               <tr className="text-left text-gray-500 text-sm border-b">
-                <th className="pb-2">Item</th>
-                <th className="pb-2 text-center">Qty</th>
-                <th className="pb-2 text-right">Price</th>
+                <th className="w-[55%] pb-2">Item</th>
+                <th className="w-[15%] pb-2 text-center">Qty</th>
+                <th className="w-[30%] pb-2 text-right">Price</th>
               </tr>
             </thead>
             <tbody>
               {order.items.map((item) => (
                 <tr key={item.id} className="border-b last:border-b-0">
-                  <td className="py-3">{item.foodItem.name}</td>
+                  <td className="break-words py-3 pr-2">{item.itemNameAtOrder || item.foodItem.name}</td>
                   <td className="py-3 text-center">{item.quantity}</td>
                   <td className="py-3 text-right">{formatCurrency(item.priceAtOrder * item.quantity)}</td>
                 </tr>

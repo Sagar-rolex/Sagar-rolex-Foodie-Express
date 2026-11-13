@@ -42,6 +42,13 @@ build/
 target/
 *.class
 *.jar
+/uploads/
+/tmp/deploy-cli/
+/tmp/migration/
+/tmp/vercel-cli/
+/tmp/vercel-appdata/
+/frontend/tmp/vercel-appdata/
+/frontend/.vercel/
 
 # IDE
 .idea/

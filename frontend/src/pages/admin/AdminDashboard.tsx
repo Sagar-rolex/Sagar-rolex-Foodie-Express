@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminApi } from '../../api/adminApi';
@@ -7,6 +7,7 @@ import type { AdminDashboardData } from '../../types/admin';
 import { toast } from 'sonner';
 import { LayoutDashboard, Store, Utensils, ShoppingCart, Users, LogOut, RefreshCw, TicketPercent, LifeBuoy } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
+import SafeImage from '../../components/SafeImage';
 
 function TrendChart({ title, points, money = false }: { title: string; points: { date: string; value: number }[]; money?: boolean }) {
   const max = Math.max(1, ...points.map(point => Number(point.value)));
@@ -28,16 +29,16 @@ export default function AdminDashboard() {
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const today = new Date().toISOString().slice(0, 10);
+  const [from, setFrom] = useState(() => { const date = new Date(); date.setDate(date.getDate() - 29); return date.toISOString().slice(0, 10); });
+  const [to, setTo] = useState(today);
+  const [grouping, setGrouping] = useState('daily');
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const response = await adminApi.getDashboard();
+      const response = await adminApi.getDashboard({ from, to, grouping });
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Failed to load dashboard data');
       }
@@ -52,7 +53,9 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [from, to, grouping]);
+
+  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
 
   const handleLogout = async () => {
     try {
@@ -144,6 +147,13 @@ export default function AdminDashboard() {
           <button onClick={fetchDashboardData} className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"><RefreshCw size={16}/>Refresh</button>
         </div>
 
+        <section className="mb-6 flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm" aria-label="Analytics filters">
+          <label className="text-sm text-gray-600">From<input type="date" value={from} max={to} onChange={e => setFrom(e.target.value)} className="mt-1 block rounded-lg border px-3 py-2 text-gray-900" /></label>
+          <label className="text-sm text-gray-600">To<input type="date" value={to} min={from} max={today} onChange={e => setTo(e.target.value)} className="mt-1 block rounded-lg border px-3 py-2 text-gray-900" /></label>
+          <label className="text-sm text-gray-600">Group by<select value={grouping} onChange={e => setGrouping(e.target.value)} className="mt-1 block rounded-lg border px-3 py-2 text-gray-900"><option value="daily">Day</option><option value="weekly">Week</option><option value="monthly">Month</option></select></label>
+          <span className="pb-2 text-sm text-gray-500">Analytics use paid revenue and the selected period.</span>
+        </section>
+
         {loadError && (
           <div role="alert" className="mb-6 flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 sm:flex-row sm:items-center sm:justify-between">
             <p>{loadError}</p>
@@ -210,17 +220,27 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-6"><p className="text-gray-500 text-sm">Available Dishes</p><p className="mt-2 text-3xl font-bold text-gray-900">{dashboard?.availableFoodItems ?? '—'}</p><Utensils className="mt-3 text-orange-600"/></div>
-          <div className="bg-white rounded-lg shadow-md p-6"><p className="text-gray-500 text-sm">Awaiting Payment / Confirmation</p><p className="mt-2 text-3xl font-bold text-gray-900">{dashboard?.pendingOrders ?? '—'}</p><ShoppingCart className="mt-3 text-amber-600"/></div>
+          <div className="bg-white rounded-lg shadow-md p-6"><p className="text-gray-500 text-sm">Active Orders</p><p className="mt-2 text-3xl font-bold text-gray-900">{dashboard?.pendingOrders ?? '—'}</p><ShoppingCart className="mt-3 text-amber-600"/></div>
         </div>
 
+        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            ['Revenue today', dashboard?.revenueSummary.today], ['Revenue this week', dashboard?.revenueSummary.thisWeek],
+            ['Revenue this month', dashboard?.revenueSummary.thisMonth], ['Average paid order', dashboard?.averageOrderValue],
+            ['Completed orders', dashboard?.completedOrders], ['Cancelled orders', dashboard?.cancelledOrders],
+            ['New customers', dashboard?.newCustomers], ['Orders in period', dashboard?.periodOrders],
+          ].map(([label, value]) => <article key={String(label)} className="rounded-xl bg-white p-5 shadow-sm"><p className="text-sm text-gray-500">{label}</p><p className="mt-2 text-2xl font-bold">{typeof value === 'number' && String(label).startsWith('Revenue') || label === 'Average paid order' ? formatCurrency(Number(value || 0)) : value ?? '—'}</p></article>)}
+        </div>
         <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
           <TrendChart title="Orders over time" points={dashboard?.ordersOverTime || []}/>
           <TrendChart title="Paid revenue over time" points={dashboard?.revenueOverTime || []} money/>
+          <TrendChart title="Customer growth" points={dashboard?.customerGrowth || []}/>
+          <section className="rounded-xl bg-white p-6 shadow-md"><h2 className="mb-5 text-lg font-bold">Order status distribution</h2><div className="space-y-3">{dashboard?.orderStatusDistribution.map(item => <div key={item.status} className="flex items-center gap-3"><span className="w-36 text-sm">{item.status.replace(/_/g, ' ')}</span><div className="h-3 flex-1 rounded bg-gray-100"><div className="h-3 rounded bg-orange-500" style={{ width: `${Math.min(100, dashboard.totalOrders ? item.count / dashboard.totalOrders * 100 : 0)}%` }}/></div><b className="w-8 text-right">{item.count}</b></div>)}</div></section>
         </div>
 
         <div className="mb-8 rounded-xl bg-white p-6 shadow-md">
           <h2 className="mb-4 text-lg font-bold text-gray-900">Best-selling dishes</h2>
-          {!dashboard?.bestSellingDishes.length ? <p className="py-6 text-center text-gray-500">Sales data appears after paid orders.</p> : <ol className="space-y-3">{dashboard.bestSellingDishes.map((dish, index) => <li key={dish.name} className="flex items-center justify-between border-b pb-2 last:border-0"><span><b className="mr-3 text-orange-600">{index + 1}.</b>{dish.name}</span><span className="font-semibold text-gray-700">{dish.quantity} sold</span></li>)}</ol>}
+          {!dashboard?.bestSellingDishes.length ? <p className="py-6 text-center text-gray-500">Sales data appears after paid orders.</p> : <ol className="space-y-3">{dashboard.bestSellingDishes.map((dish, index) => <li key={`${dish.name}-${dish.restaurantName}`} className="flex items-center gap-3 border-b pb-3 last:border-0"><b className="text-orange-600">{index + 1}.</b><SafeImage imagePath={dish.imagePath} alt={dish.name} className="h-14 w-14 shrink-0 rounded-lg"/><span className="min-w-0 flex-1"><strong className="block">{dish.name}</strong><small className="text-gray-500">{dish.restaurantName}</small></span><span className="text-right text-sm font-semibold text-gray-700">{dish.quantity} sold<br/><small>{formatCurrency(dish.revenue)}</small></span></li>)}</ol>}
         </div>
 
         {/* Quick Actions */}
@@ -254,7 +274,8 @@ export default function AdminDashboard() {
           {!dashboard?.recentOrders.length ? (
             <p className="text-gray-500 text-center py-8">{dashboard?.unavailableMetrics.includes('recentOrders') ? 'Recent orders could not be loaded.' : 'No orders yet'}</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full">
                 <thead>
                   <tr className="text-left border-b">
@@ -284,6 +305,8 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+            <div className="space-y-3 lg:hidden">{dashboard.recentOrders.map(order => <article key={order.id} className="rounded-lg border p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-bold">Order #{order.id}</p><p className="break-words text-sm text-gray-600">{order.restaurantName || 'Restaurant unavailable'}</p></div><span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' : order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{order.status.replace(/_/g, ' ')}</span></div><p className="mt-2 font-semibold">{order.totalAmount == null ? 'Amount unavailable' : formatCurrency(order.totalAmount)}</p></article>)}</div>
+            </>
           )}
         </div>
       </main>

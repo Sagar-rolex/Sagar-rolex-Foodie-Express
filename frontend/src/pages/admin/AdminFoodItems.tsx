@@ -206,15 +206,15 @@ export default function AdminFoodItems() {
 
       {/* Main Content */}
       <main className="min-w-0 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Food Items</h1>
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Food Items</h1>
             <p className="text-gray-600">Manage menu items across restaurants</p>
           </div>
           <button
             onClick={handleCreate}
             disabled={!selectedRestaurant}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex min-h-11 w-full items-center justify-center space-x-2 rounded-lg bg-blue-600 px-4 py-3 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-6"
           >
             <Plus size={20} />
             <span>Add Food Item</span>
@@ -244,7 +244,7 @@ export default function AdminFoodItems() {
         </div>
 
         {/* Food Items Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+        <div className="hidden overflow-hidden rounded-lg bg-white shadow-md lg:block">
           <table className="w-full min-w-[720px]">
             <thead className="bg-gray-50">
               <tr>
@@ -311,6 +311,12 @@ export default function AdminFoodItems() {
             </tbody>
           </table>
         </div>
+        <div className="space-y-3 lg:hidden">
+          {foodItems.length === 0 ? <div className="rounded-lg bg-white p-8 text-center text-gray-500">No food items found for this restaurant</div> : foodItems.map(item => <article key={item.id} className="rounded-xl bg-white p-4 shadow-sm">
+            <div className="flex min-w-0 items-start gap-3"><SafeImage imagePath={item.imagePath} alt={`${item.name} banner`} className="aspect-video w-28 shrink-0 rounded-lg"/><div className="min-w-0 flex-1"><h2 className="break-words font-semibold text-gray-900">{item.name}</h2><p className="mt-1 break-words text-sm text-gray-500">{item.description || item.category}</p><p className="mt-2 font-semibold text-gray-900">₹{item.price}</p><button onClick={() => handleToggleAvailability(item)} className={`mt-2 min-h-10 rounded-full px-3 py-1 text-sm font-medium ${item.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.available ? 'Available' : 'Unavailable'}</button></div></div>
+            <div className="mt-3 flex gap-2 border-t pt-3"><button onClick={() => handleEdit(item)} className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-blue-700"><Edit size={16}/>Edit</button><button onClick={() => void handleDelete(item.id)} disabled={deleting === item.id} className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-red-700 disabled:opacity-50"><Trash2 size={16}/>{deleting === item.id ? 'Deleting…' : 'Delete'}</button></div>
+          </article>)}
+        </div>
         <div className="mt-4 flex items-center justify-between">
           <span className="text-sm text-gray-500">Page {totalPages ? page + 1 : 0} of {totalPages}</span>
           <div className="flex gap-2">
@@ -321,8 +327,8 @@ export default function AdminFoodItems() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto p-4 sm:p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
+            <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-lg bg-white p-4 shadow-xl sm:max-h-[calc(100dvh-2rem)] sm:p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 {editingItem ? 'Edit Food Item' : 'Add Food Item'}
               </h2>

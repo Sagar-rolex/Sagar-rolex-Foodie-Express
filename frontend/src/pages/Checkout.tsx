@@ -219,7 +219,7 @@ export default function Checkout() {
   return (
     <div className="min-h-[80vh] bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Delivery Address Form */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center space-x-2">

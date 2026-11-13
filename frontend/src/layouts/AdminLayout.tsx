@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Menu, X } from 'lucide-react';
@@ -17,6 +17,18 @@ export default function AdminLayout() {
   const { isAuthenticated, isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [menuOpen]);
+
   // If not admin, redirect to home
   if (isAuthenticated && !isAdmin) {
     return <Navigate to="/" replace />;
@@ -31,9 +43,11 @@ export default function AdminLayout() {
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
-        {menuOpen && <nav id="admin-mobile-navigation" aria-label="Admin navigation" className="max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-t border-gray-700 p-2">
-          {adminLinks.map(([label, path]) => <Link key={path} to={path} onClick={() => setMenuOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 text-gray-200 hover:bg-gray-800 hover:text-white">{label}</Link>)}
-        </nav>}
+        {menuOpen && <div className="fixed inset-0 top-14 z-50 bg-black/40 lg:hidden" onClick={() => setMenuOpen(false)}>
+          <nav id="admin-mobile-navigation" aria-label="Admin navigation" onClick={event => event.stopPropagation()} className="h-[calc(100dvh-3.5rem)] w-[min(20rem,85vw)] overflow-y-auto overscroll-contain border-r border-gray-700 bg-gray-900 p-3 shadow-xl">
+            {adminLinks.map(([label, path]) => <Link key={path} to={path} onClick={() => setMenuOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 text-gray-200 hover:bg-gray-800 hover:text-white">{label}</Link>)}
+          </nav>
+        </div>}
       </header>}
       <Outlet />
     </div>

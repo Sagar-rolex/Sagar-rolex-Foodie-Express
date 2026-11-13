@@ -164,6 +164,28 @@ public class CartService {
     }
 
     @Transactional
+    public com.foodieexpress.dto.ReorderResponse addOrderToCart(Customer customer, com.foodieexpress.model.Order order) {
+        java.util.List<String> added = new java.util.ArrayList<>();
+        java.util.List<String> unavailable = new java.util.ArrayList<>();
+        for (com.foodieexpress.model.OrderItem oldItem : order.getItems()) {
+            FoodItem food = oldItem.getFoodItem();
+            String name = oldItem.getItemNameAtOrder() == null ? (food == null ? "Unavailable item" : food.getName()) : oldItem.getItemNameAtOrder();
+            if (food == null || !food.isAvailable() || food.getRestaurant() == null || !food.getRestaurant().isActive()) {
+                unavailable.add(name);
+                continue;
+            }
+            try {
+                addItem(customer, food.getId(), oldItem.getQuantity());
+                added.add(name);
+            } catch (RuntimeException e) {
+                unavailable.add(name + " (" + e.getMessage() + ")");
+            }
+        }
+        Cart cart = getCart(customer);
+        return new com.foodieexpress.dto.ReorderResponse(cart, calculateTotal(cart), added, unavailable);
+    }
+
+    @Transactional
     public void clearCart(Customer customer) {
         Cart cart = getOrCreateCart(customer);
         cart.getItems().clear();

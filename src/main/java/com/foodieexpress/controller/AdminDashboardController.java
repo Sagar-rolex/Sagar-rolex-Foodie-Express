@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/admin/dashboard")
@@ -27,7 +30,10 @@ public class AdminDashboardController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<AdminDashboardResponse>> getDashboard(
-            @RequestHeader(value = "X-Session-Token", required = false) String token) {
+            @RequestHeader(value = "X-Session-Token", required = false) String token,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String grouping) {
         User user = token == null || token.isBlank()
                 ? null
                 : authService.validateSession(token).orElse(null);
@@ -41,6 +47,6 @@ public class AdminDashboardController {
                     .body(ApiResponse.<AdminDashboardResponse>error("Admin access required"));
         }
 
-        return ResponseEntity.ok(ApiResponse.success("Admin dashboard", dashboardService.getDashboard()));
+        return ResponseEntity.ok(ApiResponse.success("Admin dashboard", dashboardService.getDashboard(from, to, grouping)));
     }
 }

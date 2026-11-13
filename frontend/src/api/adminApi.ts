@@ -3,7 +3,7 @@ import type { ApiResponse, Restaurant, RestaurantRequest, FoodItem, FoodItemRequ
 import type { AdminDashboardData, AdminOrder, AdminCustomer, PageData } from '../types/admin';
 
 export const adminApi = {
-  getDashboard: async (): Promise<ApiResponse<AdminDashboardData>> => (await apiClient.get('/admin/dashboard')).data,
+  getDashboard: async (params: { from?: string; to?: string; grouping?: string } = {}): Promise<ApiResponse<AdminDashboardData>> => (await apiClient.get('/admin/dashboard', { params })).data,
   getRestaurants: async (): Promise<ApiResponse<Restaurant[]>> => (await apiClient.get('/admin/restaurants')).data,
   createRestaurant: async (data: RestaurantRequest): Promise<ApiResponse<Restaurant>> => (await apiClient.post('/admin/restaurants', data)).data,
   updateRestaurant: async (id: number, data: RestaurantRequest): Promise<ApiResponse<Restaurant>> => (await apiClient.put(`/admin/restaurants/${id}`, data)).data,

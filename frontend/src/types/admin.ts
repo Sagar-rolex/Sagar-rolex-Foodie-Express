@@ -17,8 +17,20 @@ export interface AdminDashboardData {
   recentOrders: AdminRecentOrder[];
   ordersOverTime: { date: string; value: number }[];
   revenueOverTime: { date: string; value: number }[];
-  bestSellingDishes: { name: string; quantity: number }[];
+  bestSellingDishes: { name: string; restaurantName: string; imagePath: string | null; quantity: number; revenue: number }[];
   unavailableMetrics: string[];
+  completedOrders: number | null;
+  cancelledOrders: number | null;
+  periodOrders: number | null;
+  previousPeriodOrders: number | null;
+  newCustomers: number | null;
+  averageOrderValue: number | null;
+  revenueSummary: { today: number | null; thisWeek: number | null; thisMonth: number | null; allTime: number | null };
+  orderStatusDistribution: { status: OrderStatus; count: number }[];
+  customerGrowth: { date: string; value: number }[];
+  fromDate: string;
+  toDate: string;
+  grouping: 'daily' | 'weekly' | 'monthly';
 }
 
 export interface PageData<T> {
@@ -46,6 +58,8 @@ export interface AdminOrder {
   paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
   paymentMethod: string | null;
   paymentReference: string | null;
+  deliveryAddress: string;
+  cancellationReason: string | null;
   items: AdminOrderItem[];
 }
 

@@ -25,6 +25,7 @@ public class Order {
     private Restaurant restaurant;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 32)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 
@@ -40,6 +41,9 @@ public class Order {
 
     @Column(nullable = false)
     private String deliveryAddress;
+
+    @Column(length = 500)
+    private String cancellationReason;
 
     public enum OrderStatus {
         PLACED, CONFIRMED, PREPARING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED

@@ -57,8 +57,13 @@ class ApiAuthorizationTest {
     @BeforeEach
     void stubPublicData() {
         when(restaurantService.getAllActive()).thenReturn(List.of());
-        when(adminDashboardService.getDashboard()).thenReturn(new AdminDashboardResponse(
-                0L, 0L, java.math.BigDecimal.ZERO, 0L, 0L, 0L, List.of(), List.of(), List.of(), List.of(), List.of()));
+        when(adminDashboardService.getDashboard(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new AdminDashboardResponse(
+                        0L, 0L, java.math.BigDecimal.ZERO, 0L, 0L, 0L, List.of(), List.of(), List.of(), List.of(), List.of(),
+                        0L, 0L, 0L, 0L, 0L, java.math.BigDecimal.ZERO,
+                        new AdminDashboardResponse.RevenueSummary(java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO,
+                                java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO),
+                        List.of(), List.of(), "2026-01-01", "2026-01-30", "daily"));
     }
 
     @Test

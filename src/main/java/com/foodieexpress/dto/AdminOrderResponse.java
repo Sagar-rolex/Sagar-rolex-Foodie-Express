@@ -20,6 +20,8 @@ public record AdminOrderResponse(
         Bill.PaymentStatus paymentStatus,
         String paymentMethod,
         String paymentReference,
+        String deliveryAddress,
+        String cancellationReason,
         List<Item> items
 ) {
     public record Item(String name, int quantity, BigDecimal unitPrice) {}

@@ -1,0 +1,57 @@
+envVarGroups:
+  - name: foodie-database-credentials
+    envVars:
+      - key: MYSQL_USER
+        value: foodie_app
+      - key: MYSQL_PASSWORD
+        generateValue: true
+
+services:
+  - type: pserv
+    name: foodie-mysql
+    runtime: docker
+    repo: https://github.com/render-examples/mysql
+    branch: master
+    plan: 0.5c-512mb
+    region: singapore
+    envVars:
+      - fromGroup: foodie-database-credentials
+      - key: MYSQL_DATABASE
+        value: foodie_express
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10
+
+  - type: web
+    name: foodie-express-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: 0.5c-512mb
+    region: singapore
+    healthCheckPath: /api/restaurants
+    envVars:
+      - fromGroup: foodie-database-credentials
+      - key: PORT
+        value: "10000"
+      - key: DB_URL
+        value: jdbc:mysql://foodie-mysql:3306/foodie_express?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGINS
+        value: http://localhost:5173
+      - key: FOOD_IMAGE_UPLOAD_DIR
+        value: /var/data/foods
+      - key: RESTAURANT_BANNER_UPLOAD_DIR
+        value: /var/data/restaurants
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+    disk:
+      name: uploaded-images
+      mountPath: /var/data
+      sizeGB: 1
