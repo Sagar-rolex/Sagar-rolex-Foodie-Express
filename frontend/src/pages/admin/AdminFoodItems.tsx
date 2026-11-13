@@ -7,6 +7,9 @@ import { Plus, Edit, Trash2, Utensils, Store } from 'lucide-react';
 import SafeImage from '../../components/SafeImage';
 import { useWatch } from 'react-hook-form';
 import { Link } from 'react-router-dom';
+import { FOOD_IMAGE_CATALOG } from '../../data/foodImageCatalog';
+
+
 
 export default function AdminFoodItems() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -24,6 +27,14 @@ export default function AdminFoodItems() {
   const [uploading, setUploading] = useState(false);
   const { register, handleSubmit, reset, setValue, control, formState: { errors, isSubmitting } } = useForm<FoodItemRequest>();
   const currentImagePath = useWatch({ control, name: 'imagePath' });
+  const getFoodImagePath = (item: FoodItem) => {
+    const restaurantName = restaurants.find(restaurant => restaurant.id === selectedRestaurant)?.name?.toLowerCase();
+    const itemDefaultPath = restaurantName
+      ? FOOD_IMAGE_CATALOG[`${restaurantName}||${item.name.trim().toLowerCase()}`]
+      : undefined;
+    if (itemDefaultPath) return itemDefaultPath;
+    return item.imagePath || undefined;
+  };
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -87,7 +98,7 @@ export default function AdminFoodItems() {
       price: Number(item.price),
       category: item.category,
       available: item.available,
-      imagePath: item.imagePath || '',
+      imagePath: getFoodImagePath(item) || '',
     });
     setShowModal(true);
   };
@@ -267,7 +278,7 @@ export default function AdminFoodItems() {
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <SafeImage imagePath={item.imagePath} alt={`${item.name} banner`} className="aspect-video w-28 shrink-0 rounded-lg" />
+                        <SafeImage imagePath={getFoodImagePath(item)} alt={`${item.name} banner`} className="aspect-video w-28 shrink-0 rounded-lg" />
                         <div>
                         <p className="font-medium text-gray-900">{item.name}</p>
                         <p className="text-sm text-gray-500">{item.description}</p>
@@ -313,7 +324,7 @@ export default function AdminFoodItems() {
         </div>
         <div className="space-y-3 lg:hidden">
           {foodItems.length === 0 ? <div className="rounded-lg bg-white p-8 text-center text-gray-500">No food items found for this restaurant</div> : foodItems.map(item => <article key={item.id} className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex min-w-0 items-start gap-3"><SafeImage imagePath={item.imagePath} alt={`${item.name} banner`} className="aspect-video w-28 shrink-0 rounded-lg"/><div className="min-w-0 flex-1"><h2 className="break-words font-semibold text-gray-900">{item.name}</h2><p className="mt-1 break-words text-sm text-gray-500">{item.description || item.category}</p><p className="mt-2 font-semibold text-gray-900">₹{item.price}</p><button onClick={() => handleToggleAvailability(item)} className={`mt-2 min-h-10 rounded-full px-3 py-1 text-sm font-medium ${item.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.available ? 'Available' : 'Unavailable'}</button></div></div>
+            <div className="flex min-w-0 items-start gap-3"><SafeImage imagePath={getFoodImagePath(item)} alt={`${item.name} banner`} className="aspect-video w-28 shrink-0 rounded-lg"/><div className="min-w-0 flex-1"><h2 className="break-words font-semibold text-gray-900">{item.name}</h2><p className="mt-1 break-words text-sm text-gray-500">{item.description || item.category}</p><p className="mt-2 font-semibold text-gray-900">₹{item.price}</p><button onClick={() => handleToggleAvailability(item)} className={`mt-2 min-h-10 rounded-full px-3 py-1 text-sm font-medium ${item.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.available ? 'Available' : 'Unavailable'}</button></div></div>
             <div className="mt-3 flex gap-2 border-t pt-3"><button onClick={() => handleEdit(item)} className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-blue-700"><Edit size={16}/>Edit</button><button onClick={() => void handleDelete(item.id)} disabled={deleting === item.id} className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-red-700 disabled:opacity-50"><Trash2 size={16}/>{deleting === item.id ? 'Deleting…' : 'Delete'}</button></div>
           </article>)}
         </div>

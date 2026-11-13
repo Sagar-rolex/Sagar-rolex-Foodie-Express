@@ -9,6 +9,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "orders")
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Order {
 

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -56,6 +57,7 @@ public class DataInitializer implements CommandLineRunner {
 
         // 3. Seed restaurants and expanded diverse food catalog idempotently
         seedCatalog();
+        seedRaviChineseDishes();
         seedMissingImagePaths();
         seedFaqs();
 
@@ -272,6 +274,37 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("✓ Seeded expanded diverse food catalog successfully with over 100+ dishes!");
     }
 
+    /** Adds the Chinese menu to an existing Ravi Chinese Corner without duplicating dishes. */
+    private void seedRaviChineseDishes() {
+        restaurantRepository.findByName("Ravi Chinese Corner").ifPresent(restaurant -> {
+            List<FoodData> dishes = List.of(
+                    new FoodData("Veg Hakka Noodles", "Wok-tossed noodles with crunchy vegetables and savory soy sauce", new BigDecimal("199.00"), "Chinese"),
+                    new FoodData("Chicken Hakka Noodles", "Stir-fried noodles with tender chicken and vegetables", new BigDecimal("249.00"), "Chinese"),
+                    new FoodData("Schezwan Noodles", "Spicy wok-fried noodles with bold Schezwan chili sauce", new BigDecimal("229.00"), "Chinese"),
+                    new FoodData("Veg Fried Rice", "Wok-fried rice with diced vegetables and light soy seasoning", new BigDecimal("189.00"), "Chinese"),
+                    new FoodData("Chicken Fried Rice", "Wok-fried rice with tender chicken and egg", new BigDecimal("249.00"), "Chinese"),
+                    new FoodData("Veg Manchurian", "Crispy vegetable dumplings tossed in tangy Manchurian sauce", new BigDecimal("229.00"), "Chinese"),
+                    new FoodData("Chilli Paneer", "Crispy paneer with bell peppers and spicy soy-chilli sauce", new BigDecimal("269.00"), "Chinese"),
+                    new FoodData("Spring Rolls (4 pcs)", "Golden crisp rolls filled with seasoned vegetables", new BigDecimal("169.00"), "Chinese"),
+                    new FoodData("Veg Momos (6 pcs)", "Steamed vegetable dumplings served with a fiery dip", new BigDecimal("159.00"), "Chinese"),
+                    new FoodData("Hot and Sour Soup", "Spicy, tangy Chinese soup with vegetables and mushrooms", new BigDecimal("139.00"), "Chinese")
+            );
+
+            for (FoodData dish : dishes) {
+                if (foodItemRepository.findByRestaurantAndNameIgnoreCase(restaurant, dish.name).isEmpty()) {
+                    foodItemRepository.save(FoodItem.builder()
+                            .restaurant(restaurant)
+                            .name(dish.name)
+                            .description(dish.description)
+                            .price(dish.price)
+                            .category(dish.category)
+                            .available(true)
+                            .build());
+                }
+            }
+        });
+    }
+
     /** Backfills only missing paths, preserving existing paths and all other record data. */
     private void seedMissingImagePaths() {
         for (Restaurant restaurant : restaurantRepository.findAll()) {
@@ -281,8 +314,15 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
         for (FoodItem item : foodItemRepository.findAll()) {
-            if (item.getImagePath() == null || item.getImagePath().isBlank()) {
-                item.setImagePath(ImageDefaults.food(item));
+            String imagePath = item.getImagePath();
+            String defaultImagePath = ImageDefaults.food(item);
+            boolean isLegacyGenericFoodImage = imagePath != null && Set.of(
+                    "/images/burger.jpg", "/images/pizza.jpg", "/images/shared-meal.jpg", "/images/coffee.jpg",
+                    "/images/dessert.jpg", "/images/indian-thali.jpg", "/images/noodles.jpg", "/images/sushi.jpg",
+                    "/images/curry.jpg", "/images/dosa.jpg", "/images/salad.jpg", "/images/taco.jpg").contains(imagePath)
+                    && defaultImagePath.startsWith("/images/food-banners/");
+            if (imagePath == null || imagePath.isBlank() || isLegacyGenericFoodImage) {
+                item.setImagePath(defaultImagePath);
                 foodItemRepository.save(item);
             }
         }

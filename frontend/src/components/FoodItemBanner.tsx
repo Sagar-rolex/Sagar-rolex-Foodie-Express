@@ -1,5 +1,6 @@
 import SafeImage from './SafeImage';
 import type { FoodItem } from '../types';
+import { FOOD_IMAGE_CATALOG } from '../data/foodImageCatalog';
 
 type FoodItemBannerProps = {
   item: FoodItem;
@@ -64,12 +65,7 @@ const DAKSHIN_RASOI_IMAGES: Record<string, string> = {
   'Filter Coffee': '/images/food-banners/dakshin-rasoi-filter-coffee.webp',
 };
 
-const GENERIC_FOOD_IMAGES = new Set([
-  '/images/burger.jpg', '/images/pizza.jpg', '/images/shared-meal.jpg',
-  '/images/coffee.jpg', '/images/dessert.jpg', '/images/indian-thali.jpg',
-  '/images/noodles.jpg', '/images/sushi.jpg', '/images/curry.jpg', '/images/dosa.jpg',
-  '/images/salad.jpg', '/images/taco.jpg',
-]);
+
 
 function getTheme(item: FoodItem) {
   const text = `${item.name} ${item.category}`.toLowerCase();
@@ -96,10 +92,11 @@ export default function FoodItemBanner({ item, className = '' }: FoodItemBannerP
   const burgerBarnImage = item.restaurant?.name === 'Burger Barn' ? BURGER_BARN_IMAGES[item.name] : undefined;
   const restaurantTwoImage = item.restaurant?.id === 2 ? RESTAURANT_TWO_IMAGES[item.name] : undefined;
   const dakshinRasoiImage = item.restaurant?.name === 'Dakshin Rasoi' ? DAKSHIN_RASOI_IMAGES[item.name] : undefined;
-  const generatedImage = restaurantTwoImage || dakshinRasoiImage || burgerBarnImage;
-  const imagePath = generatedImage && (!item.imagePath || GENERIC_FOOD_IMAGES.has(item.imagePath))
-    ? generatedImage
-    : item.imagePath;
+  const catalogImage = item.restaurant?.name
+    ? FOOD_IMAGE_CATALOG[`${item.restaurant.name.trim().toLowerCase()}||${item.name.trim().toLowerCase()}`]
+    : undefined;
+  const generatedImage = catalogImage || restaurantTwoImage || dakshinRasoiImage || burgerBarnImage;
+  const imagePath = generatedImage || item.imagePath;
   const composition = item.id % 3;
   const copyPlacement = composition === 1 ? 'items-end text-right' : composition === 2 ? 'items-center text-center' : 'items-start text-left';
   const alignment = composition === 1 ? 'ml-auto' : composition === 2 ? 'mx-auto' : '';

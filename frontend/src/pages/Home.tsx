@@ -116,12 +116,12 @@ export default function Home() {
                 <div className="absolute -inset-4 bg-gradient-to-tr from-orange-200 to-amber-100 rounded-3xl transform rotate-3 filter blur-lg opacity-70"></div>
 
                 <div className="relative bg-white p-4 rounded-3xl shadow-2xl border border-orange-100 overflow-hidden group">
-                  <SafeImage imagePath="/images/indian-thali.jpg" alt="A freshly prepared Indian thali platter" loading="eager" fetchPriority="high" className="h-80 w-full rounded-2xl transition duration-500 group-hover:scale-105 sm:h-96" />
+                  <SafeImage imagePath="/images/home-signature-biryani.png" alt="A signature Hyderabadi dum biryani topped with saffron rice and herbs" loading="eager" fetchPriority="high" className="h-80 w-full rounded-2xl transition duration-500 group-hover:scale-105 sm:h-96" />
                   <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Featured Platter</p>
-                      <h4 className="font-bold text-gray-900 text-base">Royal Indian Thali</h4>
-                      <p className="text-xs text-[#F05A28] font-semibold mt-0.5">Curries, Rice, Breads & Sweets</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Signature Dish</p>
+                      <h4 className="font-bold text-gray-900 text-base">Hyderabadi Dum Biryani</h4>
+                      <p className="text-xs text-[#F05A28] font-semibold mt-0.5">Saffron rice, slow-cooked chicken & aromatic spices</p>
                     </div>
                     <Link
                       to="/restaurants"

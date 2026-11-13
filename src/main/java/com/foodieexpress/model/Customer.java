@@ -5,6 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "customers")
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Customer {
 

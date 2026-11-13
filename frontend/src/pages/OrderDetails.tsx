@@ -14,7 +14,6 @@ export default function OrderDetails() {
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
-  const [tracking, setTracking] = useState<Awaited<ReturnType<typeof orderApi.getTracking>>['data'] | null>(null);
   const [reordering, setReordering] = useState(false);
   const navigate = useNavigate();
 
@@ -24,8 +23,6 @@ export default function OrderDetails() {
       try {
         const orderResponse = await orderApi.getOrderById(Number(id));
         setOrder(orderResponse.data);
-        try { setTracking((await orderApi.getTracking(Number(id))).data); } catch { /* Older orders may not have a status timeline yet. */ }
-
         try {
           const billResponse = await billApi.getBillByOrder(Number(id));
           setBill(billResponse.data);
@@ -46,20 +43,6 @@ export default function OrderDetails() {
 
     fetchOrderDetails();
   }, [id, navigate]);
-
-  useEffect(() => {
-    if (!id) return;
-    if (order && ['DELIVERED', 'CANCELLED'].includes(order.status)) return;
-    const refresh = async () => {
-      try {
-        const result = await orderApi.getTracking(Number(id));
-        setTracking(result.data);
-        setOrder(current => current ? { ...current, status: result.data.currentStatus } : current);
-      } catch { /* Keep the last known state visible during transient network failures. */ }
-    };
-    const timer = window.setInterval(refresh, 15000);
-    return () => window.clearInterval(timer);
-  }, [id, order]);
 
   const handleCancelOrder = async () => {
     if (!order) return;
@@ -111,34 +94,6 @@ export default function OrderDetails() {
               {order.status.replace(/_/g, ' ')}
             </span>
           </div>
-        </div>
-      </div>
-
-      {/* Order Status Timeline */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Order Status</h2>
-        <div className="flex flex-wrap gap-2">
-          {['PLACED', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED'].map((status) => {
-            const statusIndex = ['PLACED', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].indexOf(order.status);
-            const currentIndex = ['PLACED', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED'].indexOf(status);
-            const isCompleted = currentIndex <= statusIndex;
-            const isCurrent = order.status === status;
-
-            return (
-              <div
-                key={status}
-                className={`flex items-center ${isCompleted ? 'text-green-600' : 'text-gray-400'}`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-100' : 'bg-gray-200'}`}>
-                  {isCompleted ? '✓' : (currentIndex + 1)}
-                </div>
-                <span className={`ml-2 font-medium ${isCurrent ? 'text-blue-600' : ''}`}>
-                  {status.replace(/_/g, ' ')}
-                </span>
-                {currentIndex < 4 && <span className="mx-2 text-gray-400">→</span>}
-              </div>
-            );
-          })}
         </div>
       </div>
 
@@ -221,16 +176,9 @@ export default function OrderDetails() {
       )}
 
       <section className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Status updates</h2>
-        {order.status === 'CANCELLED' ? <p className="text-red-700">Order cancelled{tracking?.cancellationReason ? `: ${tracking.cancellationReason}` : '.'}</p> : <ol className="space-y-3">{(tracking?.timeline || []).map((event, index) => <li key={`${event.status}-${event.changedAt}-${index}`} className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full bg-orange-500"/><div><p className="font-medium">{event.status.replace(/_/g, ' ')}</p><p className="text-sm text-gray-500">{new Date(event.changedAt).toLocaleString()}{event.note ? ` · ${event.note}` : ''}</p></div></li>)}</ol>}
-        {['PLACED', 'CONFIRMED', 'PREPARING', 'OUT_FOR_DELIVERY'].includes(order.status) && <p className="mt-4 text-xs text-gray-500">Status refreshes automatically about every 15 seconds.</p>}
-      </section>
-
-      <section className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-bold mb-3">Payment details</h2>
-        <p>Payment status: <strong>{tracking?.paymentStatus || bill?.paymentStatus || 'PENDING'}</strong></p>
-        {tracking?.paymentMethod && <p className="mt-1">Method: {tracking.paymentMethod}</p>}
-        {tracking?.paymentReference && <p className="mt-1 break-all text-sm text-gray-600">Transaction reference: {tracking.paymentReference}</p>}
+        <p>Payment status: <strong>{bill?.paymentStatus || 'PENDING'}</strong></p>
+        {bill?.paymentStatus === 'PAID' && <p className="mt-1">Method: Razorpay</p>}
       </section>
 
       {/* Actions */}

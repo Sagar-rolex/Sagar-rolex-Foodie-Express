@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { orderApi } from '../api/orderApi';
 import { Order } from '../types';
 import { toast } from 'sonner';
-import { CheckCircle, Package, Clock } from 'lucide-react';
+import { CheckCircle, Package } from 'lucide-react';
 import SafeImage from '../components/SafeImage';
 
 export default function OrderConfirmation() {
@@ -67,15 +67,6 @@ export default function OrderConfirmation() {
     );
   }
 
-  // Calculate estimated delivery time (30-40 minutes from order time)
-  const estimatedDelivery = new Date(
-    new Date(order.orderTime).getTime() + 35 * 60 * 1000
-  ); // 35 minutes average
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center px-4">
       <div className="text-center space-y-6">
@@ -96,19 +87,8 @@ export default function OrderConfirmation() {
 
         {/* Message */}
         <p className="text-gray-600 max-w-md">
-          Your delicious food is being prepared.
+          Your payment was confirmed and your order is saved in your order history.
         </p>
-
-        {/* Delivery Time */}
-        <div className="flex items-center space-x-3 text-gray-600 mt-4">
-          <Clock size={20} className="text-gray-400" />
-          <div className="flex-1">
-            <p className="text-sm">Estimated delivery</p>
-            <p className="text-lg font-medium text-gray-900">
-              {formatTime(estimatedDelivery)}
-            </p>
-          </div>
-        </div>
 
         {order.items[0] && (
           <div className="mx-auto flex max-w-sm items-center gap-4 rounded-2xl border border-orange-100 bg-white p-3 text-left shadow-sm">
@@ -127,7 +107,7 @@ export default function OrderConfirmation() {
             onClick={() => navigate(`/orders/${order.id}`)}
             className="flex-1 bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-gray-300 transition"
           >
-            Track Order
+            View Order
           </button>
           <button
             onClick={() => navigate('/orders')}
@@ -137,10 +117,6 @@ export default function OrderConfirmation() {
           </button>
         </div>
 
-        {/* Footer Note */}
-        <p className="text-xs text-gray-500 mt-8">
-          You'll receive updates on your order status via notification.
-        </p>
       </div>
     </div>
   );

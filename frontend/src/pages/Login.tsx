@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, Navigate, Link, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api/authApi';
 import { toast } from 'sonner';
@@ -12,12 +12,9 @@ export default function Login() {
   const { login, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const isExpired = searchParams.get('expired') === 'true';
-  const redirectMessage = location.state?.message;
 
   if (isAuthenticated) {
     return <Navigate to={isAdmin ? '/admin/dashboard' : '/restaurants'} replace />;
@@ -103,14 +100,6 @@ export default function Login() {
               Sign in with your email address to access your cart, favorites, and orders.
             </p>
           </div>
-
-          {/* Session Expiry or Redirect Alert */}
-          {(isExpired || redirectMessage) && (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 flex items-start space-x-2">
-              <span className="text-amber-600 font-bold">ℹ️</span>
-              <div>{redirectMessage || 'Your session has expired. Please sign in to continue.'}</div>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
