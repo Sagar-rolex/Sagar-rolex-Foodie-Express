@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ShoppingCart, LogOut, Menu, X, Search, Heart } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { authApi } from '../api/authApi';
 import { cartApi } from '../api/cartApi';
 import { toast } from 'sonner';
@@ -12,10 +12,29 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMobileMenuOpen(false);
+    setProfileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) setProfileMenuOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -49,7 +68,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+    <nav className="relative bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo with Dashed Underline */}
@@ -97,19 +116,6 @@ export default function Navbar() {
                   Orders
                 </Link>
                 <Link to="/wishlist" className="flex items-center gap-1 text-gray-700 hover:text-[#F05A28] font-medium transition"><Heart size={17}/>Wishlist</Link>
-                <Link to="/profile" className="flex items-center space-x-2 text-gray-700 hover:text-[#F05A28] transition font-medium bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100">
-                  <div className="w-7 h-7 bg-[#F05A28] text-white rounded-full flex items-center justify-center text-xs font-bold">
-                    {user?.username?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                  <span className="text-sm">{user?.username}</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="text-gray-500 hover:text-red-600 transition"
-                  title="Logout"
-                >
-                  <LogOut size={20} />
-                </button>
               </>
             )}
 
@@ -154,6 +160,42 @@ export default function Navbar() {
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
+
+        {isAuthenticated && !isAdmin && (
+          <div ref={profileMenuRef} className="absolute right-4 top-1/2 hidden -translate-y-1/2 xl:block">
+            <button
+              type="button"
+              onClick={() => setProfileMenuOpen(open => !open)}
+              aria-label={`Open profile menu${user?.username ? ` for ${user.username}` : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              title={user?.username || 'Your profile'}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F05A28] text-sm font-bold text-white transition hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+            >
+              {user?.username?.charAt(0).toUpperCase() || 'U'}
+            </button>
+            {profileMenuOpen && (
+              <div role="menu" aria-label="Profile menu" className="absolute right-0 top-full z-50 mt-3 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white py-2 shadow-xl">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <p className="truncate text-sm font-semibold text-gray-900">{user?.username || 'Your account'}</p>
+                  <p className="text-xs text-gray-500">Customer account</p>
+                </div>
+                <Link to="/profile" role="menuitem" onClick={() => setProfileMenuOpen(false)} className="block px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#F05A28]">
+                  My Profile
+                </Link>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setProfileMenuOpen(false); void handleLogout(); }}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  <LogOut size={17} />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
